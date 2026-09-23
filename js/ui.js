@@ -6,7 +6,7 @@
 
 import { IMG, GENRES, SOCIAL } from './config.js';
 import { t, getLang, GENRE_NAMES } from './i18n.js';
-import { getMovie, getProviders, getTitle, getProvidersFor, searchMovies, apiState } from './api.js';
+import { getMovie, getProviders, getTitle, getProvidersFor, searchMovies, getFallback, apiState } from './api.js';
 import { isBlockedTitle } from './content.js';
 import { isPublicDomain } from './archive.js';
 import { openPlayer, openTrailer } from './player.js';
@@ -151,10 +151,10 @@ export function movieCard(movie, opts = {}) {
       }
       return;
     }
-    openMovieModal(movie.id, card, card.dataset.mediaType);
+    openMovieModal(movie.id, card, card.dataset.mediaType, movie);
   });
   card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); openMovieModal(movie.id, card, card.dataset.mediaType); }
+    if (e.key === 'Enter') { e.preventDefault(); openMovieModal(movie.id, card, card.dataset.mediaType, movie); }
   });
 
   attachTilt(card);
@@ -440,7 +440,7 @@ export async function renderSearchResults(query) {
         <img src="${m.poster_path ? IMG.posterSm + m.poster_path : gradientPoster(m.title, m.gradient)}" alt="" loading="lazy">
         <div><div class="sr-t">${escapeHtml(m.title)}</div>
         <div class="sr-m">${year || '—'} · ★ ${m.vote_average ? m.vote_average.toFixed(1) : '–'}</div></div>`;
-      btn.addEventListener('click', () => { box.classList.remove('open'); openMovieModal(m.id, null, m.media_type === 'tv' || m.first_air_date ? 'tv' : 'movie'); });
+      btn.addEventListener('click', () => { box.classList.remove('open'); openMovieModal(m.id, null, m.media_type === 'tv' || m.first_air_date ? 'tv' : 'movie', m); });
       box.appendChild(btn);
       rendered.push({ m, btn });
     });
@@ -463,7 +463,7 @@ export async function renderSearchResults(query) {
 // ---------------------------------------------------------------------------
 let lastFocused = null;
 
-export async function openMovieModal(id, fromCard = null, mediaType = 'movie') {
+export async function openMovieModal(id, fromCard = null, mediaType = 'movie', fallbackMovie = null) {
   const modal = document.getElementById('movie-modal');
   const backdrop = document.getElementById('modal-backdrop');
   lastFocused = document.activeElement;
@@ -492,12 +492,33 @@ export async function openMovieModal(id, fromCard = null, mediaType = 'movie') {
   let movie;
   try { movie = await getTitle(mediaType, id); }
   catch {
-    modal.innerHTML = `<div style="display:grid;place-items:center;height:100%;padding:40px;text-align:center">
-      <div><h3>Offline</h3><p class="muted" style="margin-top:8px">Full details need a TMDB connection.</p>
-      <button class="btn btn-ghost btn-sm" style="margin-top:20px" onclick="document.getElementById('modal-backdrop').click()">Close</button></div></div>`;
-    return;
+    // Discovery cards are also an offline catalogue. Give them a real detail
+    // surface instead of an "offline" dead end so their Watch button can still
+    // open the native Archive source or the server selector.
+    try {
+      const fallback = await getFallback();
+      movie = fallbackMovie || fallback.results.find((item) => String(item.id) === String(id));
+    } catch { movie = fallbackMovie; }
+    if (movie) {
+      movie = {
+        ...movie,
+        title: movie.title || movie.name || `TMDB #${id}`,
+        release_date: movie.release_date || movie.first_air_date || '',
+      };
+    }
+    if (!movie) {
+      modal.innerHTML = `<div style="display:grid;place-items:center;height:100%;padding:40px;text-align:center">
+        <div><h3>Offline</h3><p class="muted" style="margin-top:8px">Full details need a TMDB connection.</p>
+        <button class="btn btn-ghost btn-sm" style="margin-top:20px" onclick="document.getElementById('modal-backdrop').click()">Close</button></div></div>`;
+      return;
+    }
   }
 
+  movie = {
+    ...movie,
+    title: movie.title || movie.name || `TMDB #${id}`,
+    release_date: movie.release_date || movie.first_air_date || '',
+  };
   renderModalContent(modal, movie, mediaType);
   loadProviders(movie.id, mediaType);
 }

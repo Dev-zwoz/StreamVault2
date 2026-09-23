@@ -127,11 +127,28 @@ export async function getFallbackPeople() {
   return peopleFallbackCache;
 }
 
+async function fallbackTitles(limit = 18, marker = '') {
+  try {
+    const fb = await getFallback();
+    return {
+      page: 1,
+      total_pages: 1,
+      total_results: fb.results.length,
+      results: fb.results.slice(0, limit).map((item) => ({ ...item, ...(marker ? { [marker]: true } : {}) })),
+    };
+  } catch {
+    return { page: 1, total_pages: 1, total_results: 0, results: [] };
+  }
+}
+
 /** Movie list fetch that degrades to fallback data instead of throwing. */
 export async function movieList(path, params = {}) {
   if (apiState.online && apiState.keyValid) {
     try { return await tmdb(path, params); }
-    catch (e) { console.warn('[StreamVault] list fetch failed, using fallback:', e.message); }
+    catch (e) {
+      apiState.online = false;
+      console.warn('[StreamVault] list fetch failed, using fallback:', e.message);
+    }
   }
   const fb = await getFallback();
   return { page: 1, total_pages: 1, results: fb.results };
@@ -172,8 +189,27 @@ export const getPopular = (page = 1) => discover({ sort_by: 'popularity.desc', p
 export const getTopRated = (page = 1) => discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 300, page });
 export const getNowPlaying = (page = 1) => discover({ sort_by: 'primary_release_date.desc', 'primary_release_date.lte': today(), page });
 export const getUpcoming = (page = 1) => discover({ sort_by: 'primary_release_date.desc', 'primary_release_date.gte': today(), page });
-export const getSuggested = (page = 1) => discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 1500, page });
-export const getShorts = (page = 1) => discover({ 'with_runtime.lte': 45, sort_by: 'popularity.desc', page });
+export async function getSuggested(page = 1) {
+  try {
+    const data = await discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 1500, page });
+    if (data.results?.length) return data;
+  } catch { /* local seed below keeps the rail useful */ }
+  return fallbackTitles(18, '_suggestedFallback');
+}
+
+export async function getShorts(page = 1) {
+  try {
+    const data = await discover({ 'with_runtime.lte': 45, sort_by: 'popularity.desc', page });
+    // A successful empty response is still a failed discovery experience.
+    if (data.results?.length && apiState.online && apiState.keyValid) {
+      return { ...data, results: data.results.map((item) => ({ ...item, _shortPick: true })) };
+    }
+  } catch { /* local seed below keeps the rail useful */ }
+  // These are real TMDB title records from the offline catalogue. They are
+  // presented as quick picks rather than pretending a missing API response
+  // supplied runtime metadata.
+  return fallbackTitles(18, '_quickPick');
+}
 export const getGenreList = () => tmdb('/genre/movie/list');
 export const searchMovies = (query, page = 1) => movieList('/search/movie', { query, page, include_adult: false });
 export const discover = (params = {}) => movieList('/discover/movie', { include_adult: false, ...policyParams('movie', params), ...params });
@@ -192,26 +228,32 @@ export const getShow = (id) =>
   tmdb(`/tv/${id}`, { append_to_response: 'videos,credits,similar,recommendations,external_ids' });
 export const getTitle = (type, id) => (type === 'tv' ? getShow(id) : getMovie(id));
 
-/** Popular cast rail with an offline fallback so discovery never looks empty. */
+/** Popular cast rail with a non-empty local seed even for empty API payloads. */
 export async function getPopularPeople(page = 1) {
-  try { return await tmdb('/person/popular', { page }); }
-  catch {
-    return { page: 1, total_pages: 1, results: await getFallbackPeople() };
-  }
+  try {
+    const data = await tmdb('/person/popular', { page });
+    if (data.results?.length) return data;
+  } catch { /* offline seed below */ }
+  const fallback = await getFallbackPeople();
+  return { page: 1, total_pages: 1, results: fallback.results || fallback };
 }
 
 /** Full person credits used by the actor collection drawer. */
 export async function getPerson(id, name = '') {
   try {
-    return await tmdb(`/person/${id}`, { append_to_response: 'combined_credits,images' });
-  } catch {
-    const fb = await getFallback();
-    return {
-      id, name, known_for_department: 'Acting',
-      biography: `Explore a selection of titles connected with ${name || 'this performer'}.`,
-      combined_credits: { cast: fb.results, crew: [] },
-    };
-  }
+    const data = await tmdb(`/person/${id}`, { append_to_response: 'combined_credits,images' });
+    if (data.combined_credits?.cast?.length || data.combined_credits?.crew?.length) return data;
+  } catch { /* offline filmography below */ }
+  const fb = await getFallback();
+  const peopleFallback = await getFallbackPeople();
+  const people = peopleFallback.results || peopleFallback;
+  const localPerson = people.find((person) => String(person.id) === String(id));
+  const localCredits = localPerson?.known_for?.filter((item) => item.id) || [];
+  return {
+    id, name: localPerson?.name || name, known_for_department: 'Acting',
+    biography: `Explore a selection of titles connected with ${name || 'this performer'}.`,
+    combined_credits: { cast: localCredits.length ? localCredits : fb.results, crew: [] },
+  };
 }
 
 /**
@@ -221,18 +263,23 @@ export async function getPerson(id, name = '') {
  */
 export async function getBrandTitles(brand, page = 1) {
   if (!brand?.tmdbId) return getSuggested(page);
-  if (brand.entityType === 'network') {
-    return discoverTv({ with_networks: brand.tmdbId, sort_by: 'popularity.desc', page });
-  }
-  if (brand.entityType === 'provider') {
-    return discover({
-      with_watch_providers: brand.tmdbId,
-      watch_region: 'ID',
-      with_watch_monetization_types: 'flatrate|free|ads',
-      sort_by: 'popularity.desc', page,
-    });
-  }
-  return discover({ with_companies: brand.tmdbId, sort_by: 'popularity.desc', page });
+  try {
+    let data;
+    if (brand.entityType === 'network') {
+      data = await discoverTv({ with_networks: brand.tmdbId, sort_by: 'popularity.desc', page });
+    } else if (brand.entityType === 'provider') {
+      data = await discover({
+        with_watch_providers: brand.tmdbId,
+        watch_region: 'ID',
+        with_watch_monetization_types: 'flatrate|free|ads',
+        sort_by: 'popularity.desc', page,
+      });
+    } else {
+      data = await discover({ with_companies: brand.tmdbId, sort_by: 'popularity.desc', page });
+    }
+    if (data.results?.length) return data;
+  } catch { /* collection fallback below */ }
+  return fallbackTitles(18, '_collectionFallback');
 }
 
 export const getProviders = (id) => tmdb(`/movie/${id}/watch/providers`);

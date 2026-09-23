@@ -13,8 +13,6 @@ import { listSources } from './archive.js';
 import { getSettings } from './account.js';
 import { isBlockedTitle } from './content.js';
 
-function require_settings() { return { getSettings }; }
-
 const POS_KEY = 'sv:positions';
 const el = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -29,6 +27,7 @@ const state = {
   index: 0,
   video: null,
   timer: null,
+  messageHandler: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -54,6 +53,15 @@ function label(source) {
   return source.label || t('watch.source');
 }
 
+function creditMarkup(source) {
+  const provider = CREDITS[source?.sourceKey] || CREDITS.vidbolt;
+  const bolt = source?.sourceKey === 'vidbolt' ? ''
+    : ` · VidBolt: <a href="${CREDITS.vidbolt.url}" target="_blank" rel="noopener noreferrer">${CREDITS.vidbolt.label}</a>`;
+  return `HD embed by <a href="${provider.url}" target="_blank" rel="noopener noreferrer">${provider.label} — ${provider.author}</a>${bolt}
+    · <a href="${CREDITS.archive.url}" target="_blank" rel="noopener noreferrer">${CREDITS.archive.label}</a>
+    · <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a>`;
+}
+
 function paintChrome() {
   applyI18n();
   document.documentElement.lang = getLang();
@@ -69,15 +77,12 @@ function paintChrome() {
 
   const box = el('watch-sources');
   box.innerHTML = state.sources.map((s, i) => `
-    <button role="tab" class="watch-chip ${i === state.index ? 'active' : ''}" data-src="${i}"
+    <button role="tab" class="watch-source-chip ${i < 2 ? 'watch-chip' : 'watch-server-chip'} ${i === state.index ? 'active' : ''}" data-src="${i}"
       aria-selected="${i === state.index}">${label(s)}</button>`).join('');
   box.querySelectorAll('[data-src]').forEach((b) => b.addEventListener('click', () => load(Number(b.dataset.src))));
 
-  const credit = el('watch-credit');
-  credit.innerHTML = `
-    HD embed by <a href="${CREDITS.vidbolt.url}" target="_blank" rel="noopener noreferrer">${CREDITS.vidbolt.label} — ${CREDITS.vidbolt.author}</a>
-    · <a href="${CREDITS.archive.url}" target="_blank" rel="noopener noreferrer">${CREDITS.archive.label}</a>
-    · <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a>`;
+  const active = state.sources[state.index];
+  el('watch-credit').innerHTML = creditMarkup(active);
 }
 
 // ---------------------------------------------------------------------------
@@ -87,17 +92,22 @@ function load(i) {
   const s = state.sources[i];
   if (!s) return;
   state.index = i;
+  if (state.messageHandler) {
+    window.removeEventListener('message', state.messageHandler);
+    state.messageHandler = null;
+  }
   const box = el('watch-frame');
   const embedLink = el('watch-embed');
   embedLink.hidden = false;
   embedLink.href = s.url;
   embedLink.title = t('player.newtab');
   embedLink.textContent = '↗';
-  document.querySelectorAll('.watch-chip').forEach((b) => {
+  document.querySelectorAll('.watch-source-chip').forEach((b) => {
     const on = Number(b.dataset.src) === i;
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', String(on));
   });
+  el('watch-credit').innerHTML = creditMarkup(s);
 
   clearInterval(state.timer);
   if (state.video) savePosition(state.video.currentTime, state.video.duration);
@@ -122,7 +132,7 @@ function load(i) {
     return;
   }
 
-  // VidBolt embed — no sandbox attribute, full permissions, top-level context.
+  // Embed server — no sandbox attribute, full permissions, top-level context.
   const iframe = document.createElement('iframe');
   iframe.src = s.url;
   iframe.setAttribute('allowfullscreen', '');
@@ -133,32 +143,31 @@ function load(i) {
   box.appendChild(iframe);
 
   const saved = getPositions()[String(state.id)];
+  const origin = s.origin || '*';
   iframe.addEventListener('load', () => {
     if (saved && saved.t > 20) {
-      iframe.contentWindow?.postMessage({ type: 'vidbolt:resume', currentTime: saved.t }, VIDBOLT.origin);
+      try {
+        iframe.contentWindow?.postMessage({ type: 'resume', currentTime: saved.t }, origin);
+        iframe.contentWindow?.postMessage({ type: `${s.sourceKey || 'embed'}:resume`, currentTime: saved.t }, origin);
+      } catch { /* provider may reject messages */ }
     }
     // Pin quality if the user chose one in Settings (same as the in-site player)
     try {
-      const { getSettings } = require_settings();
       const q = getSettings().quality;
-      if (q && q !== 'Auto') {
-        iframe.contentWindow?.postMessage({ type: 'vidbolt:quality-preference', label: q }, VIDBOLT.origin);
-      }
+      if (q && q !== 'Auto') iframe.contentWindow?.postMessage({ type: 'quality-preference', label: q }, origin);
     } catch { /* settings unavailable in this runtime */ }
   });
-  window.addEventListener('message', (e) => {
-    if (e.origin !== VIDBOLT.origin) return;
+  state.messageHandler = (e) => {
+    if (s.origin && e.origin !== s.origin) return;
     const data = e.data || {};
     const eventType = String(data.type || data.event || '').toLowerCase();
     const currentTime = Number(data.currentTime ?? data.time ?? data.position ?? 0);
     const duration = Number(data.duration ?? data.totalTime ?? 0);
-    const isTimeUpdate = eventType === 'timeupdate'
-      || eventType === 'progress'
-      || eventType === 'vidbolt:timeupdate'
-      || eventType === 'vidbolt:progress';
+    const isTimeUpdate = ['timeupdate', 'progress', `${s.sourceKey}:timeupdate`, `${s.sourceKey}:progress`].includes(eventType);
     if (isTimeUpdate) savePosition(currentTime, duration);
-    if (eventType === 'ended' || eventType === 'vidbolt:ended') savePosition(0, 0);
-  });
+    if (eventType === 'ended' || eventType === `${s.sourceKey}:ended`) savePosition(0, 0);
+  };
+  window.addEventListener('message', state.messageHandler);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +188,7 @@ function load(i) {
     state.sources = await listSources(state.id, state.title, state.type, state.season, state.episode);
   } catch (err) {
     console.warn('[StreamVault] source lookup failed:', err.message);
-    state.sources = [{ type: 'iframe', url: `${VIDBOLT.base}/${state.type === 'tv' ? `tv/${state.id}/${state.season}/${state.episode}` : `movie/${state.id}`}`, label: 'VidBolt · HD', sourceKey: 'vidbolt' }];
+    state.sources = [{ type: 'iframe', url: `${VIDBOLT.base}/${state.type === 'tv' ? `tv/${state.id}/${state.season}/${state.episode}` : `movie/${state.id}`}`, label: 'VidBolt · HD', sourceKey: 'vidbolt', origin: VIDBOLT.origin }];
   }
   state.index = 0;
   paintChrome();

@@ -33,7 +33,7 @@ StreamVault/
 ├── js/
 │   ├── config.js            # ⚙️ Keys, endpoints, LICENSED_SOURCES hook
 │   ├── api.js               # TMDB layer: throttle, 30-min cache, fallback
-│   ├── archive.js           # Playable-source resolution (PD map → VidBolt)
+│   ├── archive.js           # Playable-source resolution (PD map → multi-server embeds)
 │   ├── brands.js            # TV networks, movie studios and platform rails
 │   ├── ui.js                # Cards, carousels, modal, watchlist, toasts
 │   ├── animations.js        # Preloader, parallax, count-up, cursor glow
@@ -106,12 +106,24 @@ priority chain:
    from the Internet Archive in the native `<video>` player (keyboard shortcuts,
    resume-from-position, ambient glow).
 
-3. **VidBolt embed** (`https://vidbolt.xyz/movie/{tmdbId}`) — a free
-   iframe API addressed by TMDB id. TV episodes use
-   `https://vidbolt.xyz/tv/{tmdbId}/{season}/{episode}`. The player includes
-   server selection, subtitles, multiple audio tracks and up to 4K playback.
-   StreamVault listens for VidBolt `timeupdate` and `ended` postMessages when
-   available so resume positions stay local to the viewer.
+3. **Configurable embed servers** — the player keeps VidBolt as the default
+   and exposes a visible source selector for:
+
+   | Label | Movie route | TV episode route |
+   | --- | --- | --- |
+   | VidBolt | `https://vidbolt.xyz/movie/{id}` | `https://vidbolt.xyz/tv/{id}/{season}/{episode}` |
+   | VidRift | `https://embed.vidrift.in/embed/movie/{id}` | `https://embed.vidrift.in/embed/tv/{id}/{season}/{episode}` |
+   | VixSrc | `https://vixsrc.to/movie/{id}` | `https://vixsrc.to/tv/{id}/{season}/{episode}` |
+   | VidLink | `https://vidlink.pro/movie/{id}` | `https://vidlink.pro/tv/{id}/{season}/{episode}` |
+   | VidSrc | `https://vidsrc.to/embed/movie/{id}` | `https://vidsrc.to/embed/tv/{id}/{season}/{episode}` |
+   | VidCore | `https://vidcore.org/embed/movie/{id}` | `https://vidcore.org/embed/tv/{id}/{season}/{episode}` |
+   | VidAPI | `https://vidapi.xyz/embed/movie/{id}` | `https://vidapi.xyz/embed/tv/{id}/{season}/{episode}` |
+   | MoviesAPI | `https://moviesapi.to/movie/{id}` | `https://moviesapi.to/tv/{id}/{season}/{episode}` |
+
+   Availability and playback behavior are controlled by those independent
+   third-party providers and can change without notice. StreamVault does not
+   claim to host or guarantee any provider's catalog. Embed progress/resume
+   messages are accepted only from the active provider origin when available.
 
 ### Extending `public-domain-map.json`
 
@@ -146,7 +158,7 @@ Shop of Horrors · Plan 9 from Outer Space · Suddenly · Nosferatu · The Gener
 | --- | --- | --- | --- | --- | --- |
 | **TMDB** | Video | `https://api.themoviedb.org/3` | ✅ v3 key (`config.js`) | ~50 req/s (we throttle to 40) | All movie data, images, providers |
 | **Internet Archive** | Video / Open Data | `https://archive.org/metadata/{id}` | ❌ none | generous; HTTPS + CORS | Resolving public-domain MP4 streams |
-| **VidBolt** | Video | `https://vidbolt.xyz/movie/{tmdbId}` | ❌ none | provider fair-use limits | HD playback iframe for non-PD titles |
+| **VidBolt / VidRift / VixSrc / VidLink / VidSrc / VidCore / VidAPI / MoviesAPI** | Video embeds | Provider-specific TMDB movie/TV routes in `js/config.js` | ❌ none | provider fair-use limits | Selectable fallback playback if a server stalls |
 | **Disify** | Data Validation | `https://www.disify.com/api/email/{email}` | ❌ none | fair-use, HTTPS + CORS | Newsletter email validation (syntax + disposable + DNS/MX). Degrades to client-side regex if down |
 
 **Notes per the brief:**
@@ -250,13 +262,14 @@ watch.html?type=movie&id=550&title=Fight%20Club
 watch.html?type=tv&id=1399&s=1&e=1&title=Game%20of%20Thrones
 ```
 
-It carries the source switcher (Internet Archive MP4 vs VidBolt HD), resume and
-the credit line. The gold nested-frame banner is a setting: dismiss it with the
-**×** (persisted) or toggle **Standalone-player notice** in Settings. Two entry points use it: the **↗ Standalone player** pill in the
-cinema player, and a gold notice that appears automatically whenever the player
-detects it is running inside a nested frame. No `sandbox` attribute is used
-anywhere — the iframe sets `allow`, `allowfullscreen` and
-`referrerpolicy="origin"`, which is what VidBolt needs.
+It carries the source switcher (Internet Archive MP4 plus VidBolt, VidRift,
+VixSrc, VidLink, VidSrc, VidCore, VidAPI and MoviesAPI), resume and the credit
+line. The gold nested-frame banner is a setting: dismiss it with the **×**
+(persisted) or toggle **Standalone-player notice** in Settings. Two entry
+points use it: the **↗ Standalone player** pill in the cinema player, and a
+gold notice that appears automatically whenever the player detects it is
+running inside a nested frame. No `sandbox` attribute is used anywhere — each
+iframe sets `allow`, `allowfullscreen` and `referrerpolicy="origin"`.
 
 ## Attribution & legal
 
@@ -264,9 +277,10 @@ anywhere — the iframe sets `allow`, `allowfullscreen` and
   the TMDB API but is not endorsed or certified by TMDB.*
 - Watch-provider data: **Powered by [JustWatch](https://www.justwatch.com/)**.
 - Public-domain streams: [Internet Archive](https://archive.org).
-- Embedded playback: [VidBolt](https://vidbolt.xyz/) — the provider resolves
-  TMDB-addressed movie and TV embeds. StreamVault is not endorsed or certified
-  by VidBolt.
+- Embedded playback: VidBolt, VidRift, VixSrc, VidLink, VidSrc, VidCore,
+  VidAPI and MoviesAPI. Their selectable TMDB-addressed routes are configured
+  in `js/config.js`; availability belongs to each provider. StreamVault is not
+  endorsed or certified by any of them.
 - Takedown / content reports: [message me on Discord](https://discord.com/users/1469638087268110399).
 
 ## Credits

@@ -80,6 +80,7 @@ let heroMovies = [], heroIdx = 0, heroTimer = null;
 function renderHeroSlide(i) {
   const bg = document.getElementById('hero-bg');
   const dots = document.getElementById('hero-dots');
+  if (!bg || !dots) return;
   heroIdx = i;
   [...bg.children].forEach((el, j) => el.classList.toggle('active', j === i));
   [...dots.children].forEach((el, j) => el.classList.toggle('active', j === i));
@@ -141,6 +142,17 @@ async function initHero() {
 // ---------------------------------------------------------------------------
 // Home rows
 // ---------------------------------------------------------------------------
+const SUGGESTED_SEED = [
+  { id: 10331, title: 'Night of the Living Dead', release_date: '1968-10-04', vote_average: 7.6, gradient: ['#3B0764', '#0F172A'], media_type: 'movie' },
+  { id: 3085, title: 'His Girl Friday', release_date: '1940-01-18', vote_average: 7.4, gradient: ['#92400E', '#1C1917'], media_type: 'movie' },
+  { id: 15856, title: 'House on Haunted Hill', release_date: '1959-01-01', vote_average: 6.7, gradient: ['#134E4A', '#0B0B0F'], media_type: 'movie' },
+  { id: 16093, title: 'Carnival of Souls', release_date: '1962-11-02', vote_average: 6.9, gradient: ['#4C1D95', '#111827'], media_type: 'movie' },
+  { id: 20367, title: 'Detour', release_date: '1945-11-30', vote_average: 7.2, gradient: ['#1E3A8A', '#0B0B0F'], media_type: 'movie' },
+  { id: 20246, title: 'The Stranger', release_date: '1946-06-02', vote_average: 7.2, gradient: ['#7F1D1D', '#111827'], media_type: 'movie' },
+  { id: 653, title: 'Nosferatu', release_date: '1922-02-16', vote_average: 7.7, gradient: ['#0C4A6E', '#0B0B0F'], media_type: 'movie' },
+  { id: 961, title: 'The General', release_date: '1926-12-25', vote_average: 7.9, gradient: ['#57534E', '#0B0B0F'], media_type: 'movie' },
+];
+
 const ROWS = [
   ['row-trending', getTrending],
   ['row-suggested', getSuggested],
@@ -158,6 +170,8 @@ const ROWS = [
 async function loadRows() {
   ROWS.forEach(([id]) => skeletonRow(document.getElementById(id)));
   skeletonRow(document.getElementById('row-top10'));
+  // Suggested is useful on first paint, not only after TMDB responds.
+  fillRow(document.getElementById('row-suggested'), SUGGESTED_SEED, { revealChild: true });
 
   // Top 10 — trending with big outlined rank numbers
   getTrending().then(async (data) => {
@@ -659,6 +673,8 @@ async function boot() {
   renderBrandRails();
   document.querySelectorAll('.brand-rail').forEach((rail) => observeChildren(rail));
   initDiscovery();
+  // Suggested has a title rail before the first TMDB/hero request resolves.
+  fillRow(document.getElementById('row-suggested'), SUGGESTED_SEED, { revealChild: true });
   renderFooterGenres();
   initSearch();
   initLangHandling();

@@ -37,6 +37,28 @@ export const VIDBOLT = {
   origin: 'https://vidbolt.xyz',
 };
 
+/** VidRift is kept as a selectable fallback server in the player. */
+export const VIDRIFT = {
+  base: 'https://embed.vidrift.in/embed',
+  origin: 'https://embed.vidrift.in',
+};
+
+/**
+ * Additional iframe servers shown in the player. These are deliberately
+ * configuration data so a provider can be removed or replaced without
+ * touching the UI. Use only providers and content you are authorized to use.
+ */
+export const EMBED_SERVERS = [
+  { key: 'vidbolt', label: 'VidBolt', base: 'https://vidbolt.xyz', origin: 'https://vidbolt.xyz', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vidrift', label: 'VidRift', base: 'https://embed.vidrift.in/embed', origin: 'https://embed.vidrift.in', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vixsrc', label: 'VixSrc', base: 'https://vixsrc.to', origin: 'https://vixsrc.to', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vidlink', label: 'VidLink', base: 'https://vidlink.pro', origin: 'https://vidlink.pro', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vidsrc', label: 'VidSrc', base: 'https://vidsrc.to/embed', origin: 'https://vidsrc.to', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vidcore', label: 'VidCore', base: 'https://vidcore.org/embed', origin: 'https://vidcore.org', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'vidapi', label: 'VidAPI', base: 'https://vidapi.xyz/embed', origin: 'https://vidapi.xyz', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+  { key: 'moviesapi', label: 'MoviesAPI', base: 'https://moviesapi.to', origin: 'https://moviesapi.to', movie: 'movie/{id}', tv: 'tv/{id}/{season}/{episode}' },
+];
+
 /** People & projects to credit in the UI */
 export const CREDITS = {
   vidbolt: {
@@ -44,7 +66,18 @@ export const CREDITS = {
     author: 'vidbolt.xyz',
     url: 'https://vidbolt.xyz/',
   },
-  archive: { label: 'Internet Archive', url: 'https://archive.org' },
+  vidrift: {
+    label: 'VidRift',
+    author: 'embed.vidrift.in',
+    url: 'https://vidrift.net/',
+  },
+  vixsrc: { label: 'VixSrc', author: 'vixsrc.to', url: 'https://vixsrc.to/' },
+  vidlink: { label: 'VidLink', author: 'vidlink.pro', url: 'https://vidlink.pro/' },
+  vidsrc: { label: 'VidSrc', author: 'vidsrc.to', url: 'https://vidsrc.to/' },
+  vidcore: { label: 'VidCore', author: 'vidcore.org', url: 'https://vidcore.org/' },
+  vidapi: { label: 'VidAPI', author: 'vidapi.xyz', url: 'https://vidapi.xyz/' },
+  moviesapi: { label: 'MoviesAPI', author: 'moviesapi.to', url: 'https://moviesapi.to/' },
+  archive: { label: 'Internet Archive', author: 'archive.org', url: 'https://archive.org' },
 };
 
 /**

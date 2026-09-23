@@ -3,10 +3,10 @@
    Playable source resolution, in priority order:
      1. LICENSED_SOURCES (config.js hook — streams you own the rights to)
      2. public-domain-map.json → Internet Archive MP4 (native <video>)
-     3. VidBolt embed (iframe player addressed by TMDB id)
+     3. Configured embed servers (VidBolt default plus VidRift and alternatives)
    ============================================================================ */
 
-import { LICENSED_SOURCES, VIDBOLT } from './config.js';
+import { LICENSED_SOURCES, EMBED_SERVERS } from './config.js';
 
 let pdMap = null;
 
@@ -64,15 +64,22 @@ async function resolveArchiveMp4(archiveId, preferredFile) {
   throw new Error('No playable file in archive item');
 }
 
-/** Build the documented VidBolt embed URL for a movie or TV episode. */
+/** Build one provider URL from a TMDB movie or TV episode. */
+export function embedUrl(server, tmdbId, type = 'movie', season = 1, episode = 1) {
+  const template = type === 'tv' ? server.tv : server.movie;
+  const path = template
+    .replaceAll('{id}', encodeURIComponent(tmdbId))
+    .replaceAll('{season}', encodeURIComponent(season))
+    .replaceAll('{episode}', encodeURIComponent(episode));
+  return `${server.base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
 export function vidboltUrl(tmdbId, title = '', type = 'movie', season = 1, episode = 1) {
-  // VidBolt addresses movies as /movie/{tmdb_id} and TV episodes as
-  // /tv/{tmdb_id}/{season}/{episode}. The title is intentionally not added:
-  // the provider resolves the canonical metadata from the TMDB id.
-  const path = type === 'tv'
-    ? `tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season)}/${encodeURIComponent(episode)}`
-    : `movie/${encodeURIComponent(tmdbId)}`;
-  return `${VIDBOLT.base}/${path}`;
+  return embedUrl(EMBED_SERVERS.find((server) => server.key === 'vidbolt'), tmdbId, type, season, episode);
+}
+
+export function vidriftUrl(tmdbId, title = '', type = 'movie', season = 1, episode = 1) {
+  return embedUrl(EMBED_SERVERS.find((server) => server.key === 'vidrift'), tmdbId, type, season, episode);
 }
 
 /**
@@ -97,12 +104,17 @@ export async function listSources(tmdbId, title = '', type = 'movie', season = 1
     }
   }
 
-  out.push({
-    type: 'iframe',
-    url: vidboltUrl(tmdbId, title, type, season, episode),
-    label: 'VidBolt · HD',
-    kind: 'vidbolt',
-    sourceKey: 'vidbolt',
+  // Keep the server switcher explicit. VidBolt remains the default, while
+  // VidRift and the additional services are available when a source stalls.
+  EMBED_SERVERS.forEach((server) => {
+    out.push({
+      type: 'iframe',
+      url: embedUrl(server, tmdbId, type, season, episode),
+      label: server.label,
+      kind: 'embed',
+      sourceKey: server.key,
+      origin: server.origin,
+    });
   });
   return out;
 }
@@ -110,7 +122,7 @@ export async function listSources(tmdbId, title = '', type = 'movie', season = 1
 /**
  * Resolve the playable source for a TMDB id.
  * Returns { type: 'mp4'|'hls'|'iframe', url, label, kind }
- *   kind: 'licensed' | 'public-domain' | 'vidbolt'
+ *   kind: 'licensed' | 'public-domain' | 'embed'
  */
 export async function resolveSource(tmdbId, title = '', type = 'movie', season = 1, episode = 1) {
   const licensed = LICENSED_SOURCES[tmdbId] || LICENSED_SOURCES[String(tmdbId)];
@@ -128,5 +140,13 @@ export async function resolveSource(tmdbId, title = '', type = 'movie', season =
       }
     }
   }
-  return { type: 'iframe', url: vidboltUrl(tmdbId, title, type, season, episode), label: 'VidBolt', kind: 'vidbolt' };
+  const server = EMBED_SERVERS.find((item) => item.key === 'vidbolt');
+  return {
+    type: 'iframe',
+    url: embedUrl(server, tmdbId, type, season, episode),
+    label: server.label,
+    kind: 'embed',
+    sourceKey: server.key,
+    origin: server.origin,
+  };
 }
