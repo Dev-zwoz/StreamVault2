@@ -10,16 +10,17 @@ import { IMG, GENRES, SEARCH_DEBOUNCE } from './config.js';
 import { t, getLang, setLang, applyI18n, GENRE_NAMES, LANGS, coverage } from './i18n.js';
 import {
   verifyKey, apiState, getTrending, getPopular, getTopRated, getNowPlaying,
-  getUpcoming, getKorean, getJapanese, getIndonesian, getHollywood, getFamily,
+  getUpcoming, getSuggested, getKorean, getJapanese, getIndonesian, getHollywood, getFamily,
   discover, discoverTv, getMoviesByIds, getFallback, validateEmail,
 } from './api.js';
 import { isBlockedTitle } from './content.js';
 import { loadPdMap, pdIds } from './archive.js';
 import {
   skeletonRow, fillRow, movieCard, renderGenreGrid, renderFeatures, renderFaq,
-  renderSocials, renderSearchResults, getWatchlist, observeChildren, initCarousel, toast,
+  renderSocials, renderSearchResults, getWatchlist, observeChildren, initCarousel,
 } from './ui.js';
 import { renderBrandRails } from './brands.js';
+import { initDiscovery } from './discovery.js';
 import { openPlayer } from './player.js';
 import {
   initPreloader, initNavbar, initReveals, splitHeroTitle, initHeroMotion,
@@ -54,13 +55,6 @@ function showView(name) {
 
 // Programmatic navigation (auth success, user menu…)
 window.addEventListener('sv:goto', (e) => showView(e.detail.view));
-
-// Brand rails are intentionally discovery-first: a click gives immediate
-// feedback without pretending that a studio is a TMDB filter.
-window.addEventListener('sv:brand', (e) => {
-  const name = e.detail?.name;
-  if (name) toast(`${name} · ${t('nav.movies')}`);
-});
 
 // Delegate all data-view / data-scroll / data-goto / settings navigation
 document.addEventListener('click', (e) => {
@@ -149,6 +143,7 @@ async function initHero() {
 // ---------------------------------------------------------------------------
 const ROWS = [
   ['row-trending', getTrending],
+  ['row-suggested', getSuggested],
   ['row-popular', getPopular],
   ['row-top', getTopRated],
   ['row-now', getNowPlaying],
@@ -663,6 +658,7 @@ async function boot() {
   renderGenreGrid(openGenre);
   renderBrandRails();
   document.querySelectorAll('.brand-rail').forEach((rail) => observeChildren(rail));
+  initDiscovery();
   renderFooterGenres();
   initSearch();
   initLangHandling();

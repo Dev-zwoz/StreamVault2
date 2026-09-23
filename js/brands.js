@@ -69,6 +69,36 @@ export const BRAND_GROUPS = [
   },
 ];
 
+// TMDB IDs make every tile actionable: a provider opens titles available on
+// that service, a network opens its TV catalogue, and a studio opens its film
+// catalogue. The visual rail still works if a provider changes its catalogue.
+const BRAND_META = {
+  networks: {
+    Netflix: ['network', 213], 'Disney+': ['network', 2739], 'Prime Video': ['network', 1024],
+    'Apple TV+': ['network', 2552], Max: ['network', 49], Hulu: ['network', 453],
+    'Paramount+': ['network', 4330], Peacock: ['network', 3353], Crunchyroll: ['network', 1112],
+    Tubi: ['network', 256], Shudder: ['network', 1236], 'AMC+': ['network', 174],
+    STARZ: ['network', 318], MUBI: ['network', 1641],
+  },
+  studios: {
+    'Marvel Studios': ['company', 420], Pixar: ['company', 3], 'Warner Bros.': ['company', 174],
+    Universal: ['company', 33], Disney: ['company', 2], Paramount: ['company', 4],
+    DC: ['company', 9993], Lucasfilm: ['company', 1], A24: ['company', 41077],
+    'Studio Ghibli': ['company', 10342], Blumhouse: ['company', 3172], DreamWorks: ['company', 521],
+    Nickelodeon: ['company', 790], Lionsgate: ['company', 1632],
+  },
+  platforms: {
+    Netflix: ['provider', 8], 'Prime Video': ['provider', 9], 'Disney+': ['provider', 337],
+    Max: ['provider', 1899], 'Apple TV+': ['provider', 350], 'Paramount+': ['provider', 2303],
+    Peacock: ['provider', 386], Crunchyroll: ['provider', 283], Tubi: ['provider', 73],
+    YouTube: ['provider', 192], MUBI: ['provider', 11], Kanopy: ['provider', 191],
+  },
+};
+BRAND_GROUPS.forEach((group) => group.brands.forEach((brand) => {
+  const meta = BRAND_META[group.id]?.[brand.name];
+  if (meta) { brand.entityType = meta[0]; brand.tmdbId = meta[1]; }
+}));
+
 function brandTile(brand, index) {
   const tile = document.createElement('button');
   tile.type = 'button';

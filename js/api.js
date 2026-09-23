@@ -119,6 +119,14 @@ export async function getFallback() {
   return fallbackCache;
 }
 
+let peopleFallbackCache = null;
+export async function getFallbackPeople() {
+  if (peopleFallbackCache) return peopleFallbackCache;
+  const res = await fetch('data/fallback-people.json');
+  peopleFallbackCache = await res.json();
+  return peopleFallbackCache;
+}
+
 /** Movie list fetch that degrades to fallback data instead of throwing. */
 export async function movieList(path, params = {}) {
   if (apiState.online && apiState.keyValid) {
@@ -164,6 +172,8 @@ export const getPopular = (page = 1) => discover({ sort_by: 'popularity.desc', p
 export const getTopRated = (page = 1) => discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 300, page });
 export const getNowPlaying = (page = 1) => discover({ sort_by: 'primary_release_date.desc', 'primary_release_date.lte': today(), page });
 export const getUpcoming = (page = 1) => discover({ sort_by: 'primary_release_date.desc', 'primary_release_date.gte': today(), page });
+export const getSuggested = (page = 1) => discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 1500, page });
+export const getShorts = (page = 1) => discover({ 'with_runtime.lte': 45, sort_by: 'popularity.desc', page });
 export const getGenreList = () => tmdb('/genre/movie/list');
 export const searchMovies = (query, page = 1) => movieList('/search/movie', { query, page, include_adult: false });
 export const discover = (params = {}) => movieList('/discover/movie', { include_adult: false, ...policyParams('movie', params), ...params });
@@ -181,6 +191,50 @@ export const getMovie = (id) =>
 export const getShow = (id) =>
   tmdb(`/tv/${id}`, { append_to_response: 'videos,credits,similar,recommendations,external_ids' });
 export const getTitle = (type, id) => (type === 'tv' ? getShow(id) : getMovie(id));
+
+/** Popular cast rail with an offline fallback so discovery never looks empty. */
+export async function getPopularPeople(page = 1) {
+  try { return await tmdb('/person/popular', { page }); }
+  catch {
+    return { page: 1, total_pages: 1, results: await getFallbackPeople() };
+  }
+}
+
+/** Full person credits used by the actor collection drawer. */
+export async function getPerson(id, name = '') {
+  try {
+    return await tmdb(`/person/${id}`, { append_to_response: 'combined_credits,images' });
+  } catch {
+    const fb = await getFallback();
+    return {
+      id, name, known_for_department: 'Acting',
+      biography: `Explore a selection of titles connected with ${name || 'this performer'}.`,
+      combined_credits: { cast: fb.results, crew: [] },
+    };
+  }
+}
+
+/**
+ * Resolve a brand tile to the matching TMDB discovery query. Companies use
+ * movie discovery, networks use TV discovery, and watch providers use the
+ * region-aware provider query.
+ */
+export async function getBrandTitles(brand, page = 1) {
+  if (!brand?.tmdbId) return getSuggested(page);
+  if (brand.entityType === 'network') {
+    return discoverTv({ with_networks: brand.tmdbId, sort_by: 'popularity.desc', page });
+  }
+  if (brand.entityType === 'provider') {
+    return discover({
+      with_watch_providers: brand.tmdbId,
+      watch_region: 'ID',
+      with_watch_monetization_types: 'flatrate|free|ads',
+      sort_by: 'popularity.desc', page,
+    });
+  }
+  return discover({ with_companies: brand.tmdbId, sort_by: 'popularity.desc', page });
+}
+
 export const getProviders = (id) => tmdb(`/movie/${id}/watch/providers`);
 export const getTvProviders = (id) => tmdb(`/tv/${id}/watch/providers`);
 export const getProvidersFor = (type, id) => (type === 'tv' ? getTvProviders(id) : getProviders(id));

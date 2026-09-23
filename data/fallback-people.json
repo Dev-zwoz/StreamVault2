@@ -1,0 +1,20 @@
+{
+  "results": [
+    {"id": 3223, "name": "Millie Bobby Brown", "profile_path": "/kHO7hdNEVuTnQ0OjjrxP1RcAa0e.jpg", "known_for_department": "Acting", "known_for": [{"title": "Stranger Things"}]},
+    {"id": 46012, "name": "Yu Aoi", "profile_path": "/xxZuHK0Be3caq3iTe03rbfzC5xB.jpg", "known_for_department": "Acting", "known_for": [{"title": "Space Pirate Captain Harlock"}]},
+    {"id": 13539, "name": "Morena Baccarin", "profile_path": "/4gyHyg6FJ1oFczOm5pmMkdEEo2J.jpg", "known_for_department": "Acting", "known_for": [{"title": "Deadpool"}]},
+    {"id": 1121, "name": "Robert Pattinson", "profile_path": "/3qZ09UE7lN6AtorfXFRYpEtSY93.jpg", "known_for_department": "Acting", "known_for": [{"title": "The Batman"}]},
+    {"id": 2963, "name": "Nicolas Cage", "profile_path": "/y1RtezurZYveYkVNRht7CwEgSYY.jpg", "known_for_department": "Acting", "known_for": [{"title": "The Croods"}]},
+    {"id": 90633, "name": "Gal Gadot", "profile_path": "/AbXKtWQwuDiwhoQLh34VRglwuBE.jpg", "known_for_department": "Acting", "known_for": [{"title": "Wonder Woman"}]},
+    {"id": 234352, "name": "Margot Robbie", "profile_path": "/8LqG2N6j98lFGMpuYsRUAhOunSd.jpg", "known_for_department": "Acting", "known_for": [{"title": "Barbie"}]},
+    {"id": 30614, "name": "Ryan Gosling", "profile_path": "/lyUyVARQKhGxaxy0FbPJCQRpiaW.jpg", "known_for_department": "Acting", "known_for": [{"title": "La La Land"}]},
+    {"id": 10980, "name": "Josh Hutcherson", "profile_path": "/f0eosZ1Fx0VBUyspq8K2f8sUSBn.jpg", "known_for_department": "Acting", "known_for": [{"title": "The Hunger Games"}]},
+    {"id": 2037, "name": "Robin Tunney", "profile_path": "/vOmWyYNoVEaPPvoto4IW8dSXn7I.jpg", "known_for_department": "Acting", "known_for": [{"title": "The Mentalist"}]},
+    {"id": 118563, "name": "Kim Sun-young", "profile_path": "/kdS3LYZ30fx4NL7coPJ3WUUAlLx.jpg", "known_for_department": "Acting", "known_for": [{"title": "The Chaser"}]},
+    {"id": 120913, "name": "Miku Martineau", "profile_path": "/58S1hYHe1TuHgxxaddzCbqxjJNJ.jpg", "known_for_department": "Acting", "known_for": [{"title": "Kate"}]},
+    {"id": 500, "name": "Tom Cruise", "profile_path": "/8qBylLlWJ6Wzp6i3LzMCXkP3J1v.jpg", "known_for_department": "Acting", "known_for": [{"title": "Top Gun: Maverick"}]},
+    {"id": 287, "name": "Brad Pitt", "profile_path": "/cckcYc2v0yh1tc9QjRelptcOBko.jpg", "known_for_department": "Acting", "known_for": [{"title": "Fight Club"}]},
+    {"id": 6161, "name": "Samuel L. Jackson", "profile_path": "/AiAYAqwpM5xmiFrAIeQvUXDCVdV.jpg", "known_for_department": "Acting", "known_for": [{"title": "Pulp Fiction"}]},
+    {"id": 224513, "name": "Zendaya", "profile_path": "/6TE2AlOUqcrs7CyJiCzFfB4c0bO.jpg", "known_for_department": "Acting", "known_for": [{"title": "Dune"}]}
+  ]
+}

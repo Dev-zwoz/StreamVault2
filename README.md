@@ -51,6 +51,12 @@ StreamVault/
 No build step. Vanilla HTML/CSS/JS with ES modules — serve the folder with any
 static server and it runs.
 
+The home page also includes a category-first discovery hub: Reels & Shorts,
+Top Actors & Actresses, Suggested For You, provider/network/studio logo rails,
+and a collection drawer. Clicking a provider, TV network or studio queries the
+matching TMDB discovery filter; clicking an actor opens their filmography. A
+small offline people catalogue keeps those rails populated when TMDB is down.
+
 ```bash
 # local preview
 python3 -m http.server 8000 --bind 0.0.0.0

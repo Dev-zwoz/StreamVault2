@@ -114,6 +114,7 @@
       <a href="#home" data-view="home" data-i18n="nav.home">Home</a>
       <a href="#movies" data-view="movies" data-i18n="nav.movies">Movies</a>
       <a href="#genres" data-scroll="#genres" data-i18n="nav.genres">Genres</a>
+      <a href="#categories" data-scroll="#categories">Categories</a>
       <a href="#trending" data-scroll="#trending" data-i18n="nav.trending">Trending</a>
       <a href="#watchlist" data-view="watchlist" data-i18n="nav.watchlist">Watchlist</a>
       <a href="#about" data-scroll="#about" data-i18n="nav.about">About</a>
@@ -193,6 +194,10 @@
         <div class="row-head"><h2 data-i18n="row.trending">Trending Now</h2></div>
         <div class="carousel-wrap"><div class="carousel" id="row-trending" data-row></div></div>
       </section>
+      <section class="row-section container reveal" id="suggested">
+        <div class="row-head"><h2><span class="gold">✦</span>&nbsp;Suggested For You</h2><span class="row-note">Based on what is popular in the vault</span></div>
+        <div class="carousel-wrap"><div class="carousel" id="row-suggested" data-row></div></div>
+      </section>
 
       <!-- catalogue rows -->
       <section class="row-section container reveal"><div class="row-head"><h2 data-i18n="row.popular">Popular</h2></div><div class="carousel-wrap"><div class="carousel" id="row-popular" data-row></div></div></section>
@@ -204,6 +209,35 @@
       <section class="row-section container reveal"><div class="row-head"><h2 data-i18n="row.indo">Film Indonesia Terbaik</h2></div><div class="carousel-wrap"><div class="carousel" id="row-indo" data-row></div></div></section>
       <section class="row-section container reveal"><div class="row-head"><h2 data-i18n="row.hollywood">Hollywood Blockbusters</h2></div><div class="carousel-wrap"><div class="carousel" id="row-hollywood" data-row></div></div></section>
       <section class="row-section container reveal"><div class="row-head"><h2 data-i18n="row.family">Family Night</h2></div><div class="carousel-wrap"><div class="carousel" id="row-family" data-row></div></div></section>
+
+      <!-- category hub inspired by the category-first references -->
+      <section class="category-hub container reveal" id="categories">
+        <div class="section-head">
+          <span class="eyebrow"><i>Explore the vault</i></span>
+          <h2>Browse by category</h2>
+          <p>Jump straight to the people, places and collections behind the stories.</p>
+        </div>
+        <div class="category-grid">
+          <button class="category-tile" data-scroll="#top10"><span class="category-icon">#</span><b>Top 10 today</b><small>The titles everyone is watching</small></button>
+          <button class="category-tile" data-scroll="#reels"><span class="category-icon">▶</span><b>Reels &amp; Shorts</b><small>Quick picks for a shorter watch</small></button>
+          <button class="category-tile" data-scroll="#people"><span class="category-icon">✦</span><b>Top actors</b><small>Explore stars and their filmographies</small></button>
+          <button class="category-tile" data-scroll="#brand-discovery"><span class="category-icon">◉</span><b>Providers</b><small>Find movies by streaming service</small></button>
+          <button class="category-tile" data-scroll="#brand-studios"><span class="category-icon">◆</span><b>Studios</b><small>See the worlds they created</small></button>
+          <button class="category-tile" data-view="movies"><span class="category-icon">⌕</span><b>All titles</b><small>Filter the full library</small></button>
+        </div>
+      </section>
+
+      <!-- short-form discovery rail -->
+      <section class="discovery-section container reveal" id="reels">
+        <div class="discovery-head"><div><span class="eyebrow"><i>Quick watch</i></span><h2>Reels &amp; Shorts</h2><p>Shorter picks, trailers and compact stories for when you only have a few minutes.</p></div><button class="btn btn-ghost btn-sm" data-view="movies">See all</button></div>
+        <div class="reel-rail" id="reel-rail" aria-label="Reels and Shorts"></div>
+      </section>
+
+      <!-- popular people rail -->
+      <section class="discovery-section container reveal" id="people">
+        <div class="discovery-head"><div><span class="eyebrow"><i>Cast &amp; creators</i></span><h2>Top Actors &amp; Actresses</h2><p>Tap a star to see the movies and shows they are known for.</p></div><button class="btn btn-ghost btn-sm" data-view="movies">Explore all stars</button></div>
+        <div class="people-rail" id="people-rail" aria-label="Top actors and actresses"></div>
+      </section>
 
       <!-- brand discovery rails -->
       <section class="brand-section container reveal" id="brand-discovery">
@@ -458,6 +492,7 @@
   <div class="modal-backdrop" id="modal-backdrop"></div>
   <div class="modal" id="movie-modal" role="dialog" aria-modal="true" aria-label="Movie details" tabindex="-1"></div>
   <div id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings"></div>
+  <div id="collection-modal" role="dialog" aria-modal="true" aria-label="Collection" tabindex="-1"></div>
 
   <div id="player-modal" role="dialog" aria-modal="true" aria-label="Video player">
     <div class="player-shell">
