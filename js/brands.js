@@ -153,7 +153,6 @@ function brandTile(brand, index) {
     const direct = brand.logo_path ? `https://image.tmdb.org/t/p/w300${brand.logo_path}` : '';
     const simple = `https://cdn.simpleicons.org/${brand.icon}/ffffff`;
     let triedSimple = false;
-    img.src = direct || simple;
     img.addEventListener('load', () => {
       fallback.hidden = true;
       img.hidden = false;
@@ -168,6 +167,7 @@ function brandTile(brand, index) {
       fallback.hidden = false;
     });
     logo.appendChild(img);
+    img.src = direct || simple;
   }
 
   const name = document.createElement('span');
